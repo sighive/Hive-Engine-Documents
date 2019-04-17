@@ -8,70 +8,47 @@
 
 **源代码管理:** git && github
 
-**数学库 :** GLSL风格的[maths](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/include/vsg/maths)库, 借鉴了GLSL、 GLM 以及 Vulkan conventions
+**数学库 :** GLSL风格的[maths](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/include/vsg/maths)库, 借鉴GLSL、 GLM 以及 Vulkan conventions
 
-**Windowing:** 本地原生Windowing与核心VSG库集成，能够使用第三方Windowing（短期内使用GLFW快速入门。）
+**Windowing:** 本地原生Windowing与核心VSG库集成，能够使用第三方Windowing（短期内使用GLFW快速入门）
 
 **Vulkan集成:** 
 
-* lightweight [local C++ encapsulation](../../include/vsg/vk) of Vulkan objects, naming and style inspired by Vulkan C API.
-* Provide convenient and robust setup and clean of resources.
-* Standard naming VkFeature -> vsg::Feature in include/vsg/vk/Feature
-* Cmd naming VkCmdFeature -> vsg::Feature, sub-classed from [vsg::Command](../../include/vsg/vk/Command.h)
-* State VkCmdFeature -> vsg::Feature, sub-classed from vsg::StateComponent and aggregated within a [vsg::StateGroup](../../include/vsg/nodes/StateGroup.h) node.
+* Vulkan对象的轻量级[C++封装](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/include/vsg/vk), 命名和风格借鉴Vulkan C API
+* 提供方便、鲁棒的资源设置和清理方式
+* 命名标准： VkFeature -> vsg::Feature，对应include/vsg/vk/Feature文件
+* Cmd naming VkCmdFeature -> vsg::Feature, sub-classed from [vsg::Command](https://github.com/vsg-dev/VulkanSceneGraphPrototype/blob/master/include/vsg/vk/Command.h)
+* State VkCmdFeature -> vsg::Feature, sub-classed from vsg::StateComponent and aggregated within a [vsg::StateGroup](https://github.com/vsg-dev/VulkanSceneGraphPrototype/blob/master/include/vsg/nodes/StateGroup.h) node
 
+**单一库:** 所有core, maths, nodes, utilities, vulkan和viewer等相关类都放到libvsg单个库中, 既可以用作静态链接库、也可以用作动态链接库。
 
-**Single library:** all core, maths, nodes, utilities, vulkan and viewer provided in libvsg library, can be either be used as static or dynamic library.
+**命名空间:** vsg
 
-**Namespace:** vsg used for all categories of functionality within the libvsg library.
+**头文件:** 使用 .h 后缀
 
-**Headers:** .h used for public classes/functions
+所有文件按照功能类别放到合适的子目录下，例如：
 
-Categories of functionality placed in appropriately named subdirectories i.e.
+* [include/vsg/core](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/include/vsg/core/)/Object.h
+* [include/vsg/nodes/](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/include/vsg/nodes/)Group.h
+* [include/vsg/vk/](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/include/vsg/vk/)Instance.h
+* 为方便起见可以使用 include/vsg/all.h从而包含所有vsg/*/*.h
 
-* [include/vsg/core](../../include/vsg/core/)/Object.h
-* [include/vsg/nodes/](../../include/vsg/nodes/)Group.h
-* [include/vsg/vk/](../../include/vsg/vk/)Instance.h
-For convenience high level include/vsg/all.h head to includes all vsg/*/*.h
+**源文件:** 使用 .cpp 后缀
 
-**Source:** .cpp extension used
+所有文件按照功能类别放到合适的子目录下，例如：
 
-Categories of functionality placed in appropriate named subdirectories i.e.
+* [src/vsg/core/](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/src/vsg/core/)Visitor.cpp
+* [src/vsg/viewer/](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/src/vsg/viewer/)Viewer.cpp
 
-* [src/vsg/core/](../../src/vsg/core/)Visitor.cpp
-* [src/vsg/viewer/](../../src/vsg/viewer/)Viewer.cpp
+**内存:** 为了解决场景图性能瓶颈的问题，主要目标是提高缓存一致性、并降低内存带宽负载。
 
+侵入式引用计数效率是std::shared_ptr<>的两倍, 进而导致遍历速度上提高了50%. 
+使用 [vsg::ref_ptr<>](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/include/vsg/core/ref_ptr.h), [vsg::observer_ptr<>](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/include/vsg/core/observer_ptr.h)和vsg::Object。
 
-**Memory:** To address the main scene graph performance bottleneck have a general goal of improving cache coherency and lowering memory bandwidth load.
+使用std::atomic提供高效的、线程安全的引用计数。
 
-Intrusive reference counting twice as memory efficient as std::shared_ptr<>, and results in ~50% better traversals speeds. Use [vsg::ref_ptr<>](../../include/vsg/core/ref_ptr.h), [vsg::observer_ptr<>](../../include/vsg/core/observer_ptr.h) and vsg::Object.
+为了最小化场景图中大多数内部节点的大小，少数节点需要的辅助数据从vsg::Object/Node 类移植到了[vsg::Auxiliary](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/include/vsg/core/Auxiliary.h) 对象。
 
-Use std::atomic to provide efficient, thread safe reference counts
+为了更强大的内存管理控制， [vsg::Allocator](https://github.com/vsg-dev/VulkanSceneGraphPrototype/tree/master/include/vsg/core/Allocator.h) 类允许应用程序控制场景图如何分配以及释放内存。
 
-To minimize the size of majority of internal scene graph nodes and leave nodes the ancillary data that only a few objects required are moved out of the base vsg::Object/Node classes into an [vsg::Auxiliary](../../include/vsg/core/Auxiliary.h) object.
-
-To enable greater control over memory management [vsg::Allocator](../../include/vsg/core/Allocator.h) class to enable application to control how the scene graph allocates and deletes memory.
-
-**Unification:**
-All vsg::Object support intrusive reference counting and meta data support All vsg::Object support type safe query via [vsg::Visitor](../../include/vsg/core/Visitor.h) and [vsg::ConstVisitor](../../include/vsg/core/ConstVisitor.h)
-
-All uniform and vertex array data can be handled via the [Data](../../include/vsg/core/Data.h) interface Single value data via the [vsg::Value](](../../include/vsg/core/Value.h)) template Array data via the [vsg::Array](](../../include/vsg/core/Array.h)) template classes
-
-The main scene graph and the rendering back-ends command graph utilize the same scene graph hierarchy.
-
-Vulkan [Compute](../../include/vsg/vk/ComputePipeline.h) and [Graphics](../../include/vsg/vk/GraphicsPipeline.h) to be supported with the same Vulkan wrappers, scene graph and command graph hierarchies.
-
-
-**Usage models:** Application developers will be able to dispatch data directly to Vulkan using the VSG’s Vulkan wrappers in a form of an immediate mode, creating their own command graphs that use standard vsg command visitors or their own custom visitors, through to using visitor to cull the main scene graph down to a command graph each frame and dispatching this vulkan.
-
-
-**Introspection:** Not explored during Exploration Phase so will need to be addressed in future. Aim to provide introspection/reflection for all core scene graph objects to provide support for reading/writing scene graph objects and open the door to scripting.
-
-
-**IO:** Support for loading 3rd party images and 3D models is currently deemed out of scope of the core libvsg library. Only IO supported will be via the native scene graph objects support for reflection. This IO support will enable scene graphs, images and shaders to read and written without any additional libraries.
-
-
-Support for 3rd party images, 3D models and shaders will be provided by add
-on libraries. To aid with porting of OpenSceneGraph application a osg2vsg
-library will be developed so that all loaders that the OpenSceneGraph has will
-be available.  These 3rd party on libraries providing image. 3D model and shaders will form an important part of testing of the VSG project as it evolves and are expected to develop in conjunction with the VSG project.
+**Introspection:** 在探索阶段尚未探索，需要未来再做考虑。目的是为所有场景图核心类提供introspection/reflectio机制，从而提供对通过脚本读写场景对象功能的支持。
